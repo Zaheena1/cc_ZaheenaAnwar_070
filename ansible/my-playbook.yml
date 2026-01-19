@@ -1,0 +1,64 @@
+---
+- name: Configure Web Server on Q2 Instance
+  hosts: ec2
+  become: true
+  tasks:
+    - name: Update all packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: Stop and disable Nginx (from Q2)
+      service:
+        name: nginx
+        state: stopped
+        enabled: false
+      ignore_errors: true  # Proceed even if nginx isn't there
+
+    - name: Install Apache HTTPD
+      dnf:
+        name: httpd
+        state: present
+
+    - name: Start and enable HTTPD
+      service:
+        name: httpd
+        state: started
+        enabled: true
+
+    # --- IMDSv2 Logic ---
+    - name: Get IMDSv2 Token
+      uri:
+        url: http://169.254.169.254/latest/api/token
+        method: PUT
+        headers:
+          X-aws-ec2-metadata-token-ttl-seconds: "21600"
+        return_content: true
+      register: imds_token
+
+    - name: Get Public IP using Token
+      uri:
+        url: http://169.254.169.254/latest/meta-data/public-ipv4
+        method: GET
+        headers:
+          X-aws-ec2-metadata-token: "{{ imds_token.content }}"
+        return_content: true
+      register: public_ip
+
+    - name: Get Public Hostname using Token
+      uri:
+        url: http://169.254.169.254/latest/meta-data/public-hostname
+        method: GET
+        headers:
+          X-aws-ec2-metadata-token: "{{ imds_token.content }}"
+        return_content: true
+      register: public_hostname
+
+    - name: Print Public IP
+      debug:
+        msg: "The Public IP is {{ public_ip.content }}"
+
+    - name: Restart HTTPD Service
+      service:
+        name: httpd
+        state: restarted
