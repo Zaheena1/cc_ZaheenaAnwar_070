@@ -1,0 +1,17 @@
+---
+- name: Install Apache HTTPD
+  dnf:
+    name: httpd
+    state: present
+
+- name: Start and Enable HTTPD
+  service:
+    name: httpd
+    state: started
+    enabled: true
+
+- name: Deploy Custom Index Page
+  template:
+    src: backend_index.html.j2
+    dest: /var/www/html/index.html
+    mode: '0644'
