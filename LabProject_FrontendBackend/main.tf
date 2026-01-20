@@ -17,12 +17,12 @@ resource "aws_vpc" "main" {
   tags = { Name = "${var.env_prefix}-vpc" }
 }
 
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.subnet_cidr_block
-  availability_zone       = var.availability_zone
-  map_public_ip_on_launch = true
-  tags = { Name = "${var.env_prefix}-subnet-1" }
+module "subnet" {
+  source = "./modules/subnet"
+  vpc_id            = aws_vpc.main.id
+  subnet_cidr_block = var.subnet_cidr_block
+  availability_zone = var.availability_zone
+  env_prefix        = var.env_prefix
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -40,7 +40,7 @@ resource "aws_route_table" "public_rt" {
 }
 
 resource "aws_route_table_association" "public_rt_assoc" {
-  subnet_id      = aws_subnet.public.id
+  subnet_id      = module.subnet.subnet_id
   route_table_id = aws_route_table.public_rt.id
 }
 
@@ -103,7 +103,7 @@ resource "aws_key_pair" "ssh_key" {
 resource "aws_instance" "frontend" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
+  subnet_id              = module.subnet.subnet_id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   key_name               = aws_key_pair.ssh_key.key_name
   tags = { Name = "${var.env_prefix}-frontend" }
@@ -113,7 +113,7 @@ resource "aws_instance" "backend" {
   count                  = 3
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
+  subnet_id              = module.subnet.subnet_id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   key_name               = aws_key_pair.ssh_key.key_name
   tags = { Name = "${var.env_prefix}-backend-${count.index + 1}" }
