@@ -121,7 +121,7 @@ resource "aws_instance" "backend" {
 
 # --- Automation ---
 resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.module}/inventory.tftpl", {
+  content = templatefile("${path.module}/ansible/inventory.tftpl", {
     frontend_ip = aws_instance.frontend.public_ip
     backend_ips = aws_instance.backend[*].public_ip
     private_key = var.private_key_path
