@@ -1,17 +1,17 @@
 ---
-- name: Install Apache HTTPD
-  dnf:
+- name: Install Apache
+  yum:
     name: httpd
     state: present
 
-- name: Start and Enable HTTPD
+- name: Start Apache service
   service:
     name: httpd
     state: started
     enabled: true
 
-- name: Deploy Custom Index Page
-  template:
-    src: backend_index.html.j2
+- name: Copy index.html
+  copy:
+    src: index.html
     dest: /var/www/html/index.html
-    mode: '0644'
+  notify: Restart Apache
